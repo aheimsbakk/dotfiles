@@ -165,7 +165,8 @@ resolve_latest_version() {
 #   On failure, prints OS-specific installation instructions and exits with 1.
 #   On success, prints a confirmation and returns 0.
 check_requirements() {
-	local missing=()
+	local missing
+	missing=()
 	local tool
 
 	for tool in curl python3; do
@@ -549,9 +550,16 @@ for entry in "${DOTFILES[@]}"; do
 
 	# Expand glob against the repository.
 	shopt -s nullglob
-	mapfile -t matches < <(cd "$REPO_DIR" && printf '%s\n' ${repo_pattern})
+	matches=()
+	while IFS= read -r _match; do
+		matches+=("$_match")
+	done < <(cd "$REPO_DIR" && printf '%s\n' ${repo_pattern})
 	shopt -u nullglob
-	matches=("${matches[@]/#/"${REPO_DIR}/"}")
+	_prefixed=()
+	for _m in "${matches[@]}"; do
+		_prefixed+=("${REPO_DIR}/${_m}")
+	done
+	matches=("${_prefixed[@]}")
 
 	if [[ ${#matches[@]} -eq 0 ]]; then
 		status "MISSING" "${repo_pattern}  (no files matched in repo)"
@@ -625,7 +633,7 @@ while IFS= read -r profile_rel; do
 			purge_snippet "$guard_name" "$profile"
 			((purged++)) || true
 		fi
-	done < <(grep -oP '(?<=# >>> dotfiles:)[^ >]+' "$profile" 2>/dev/null || true)
+	done < <(grep -o '# >>> dotfiles:[^ >]*' "$profile" 2>/dev/null | sed 's/# >>> dotfiles://' || true)
 done < <(shell_profile_values)
 
 [[ "$purged" -gt 0 ]] && echo "  ${purged} stale snippet block(s) purged."
