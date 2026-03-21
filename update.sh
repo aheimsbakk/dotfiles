@@ -44,10 +44,32 @@ DOTFILES=(
 # Snippets in snippets/ are named <anything>.<shell-ext> and are sourced into
 # the matching profile via a guarded include block.
 
-declare -A SHELL_PROFILES=(
-	[bash]=".bashrc"
-	[zsh]=".zshrc"
+# Plain "ext=profile" pairs — compatible with Bash 3.2 (macOS default).
+SHELL_PROFILES=(
+	"bash=.bashrc"
+	"zsh=.zshrc"
 )
+
+# shell_profile_for EXT
+#   Prints the profile path for the given shell extension, or nothing if unknown.
+shell_profile_for() {
+	local want="$1" entry
+	for entry in "${SHELL_PROFILES[@]}"; do
+		if [[ "${entry%%=*}" == "$want" ]]; then
+			printf '%s' "${entry#*=}"
+			return
+		fi
+	done
+}
+
+# shell_profile_values
+#   Prints each unique profile path (right-hand side of every SHELL_PROFILES entry).
+shell_profile_values() {
+	local entry
+	for entry in "${SHELL_PROFILES[@]}"; do
+		printf '%s\n' "${entry#*=}"
+	done
+}
 
 # ─── powerline-go install path ────────────────────────────────────────────────
 #
@@ -87,7 +109,7 @@ EOF
 	for f in "${REPO_DIR}/snippets/"*.*; do
 		[[ -f "$f" ]] || continue
 		ext="${f##*.}"
-		profile="${SHELL_PROFILES[$ext]:-}"
+		profile="$(shell_profile_for "$ext")"
 		[[ -n "$profile" ]] && echo "  $(basename "$f")  →  ${profile}"
 	done
 }
@@ -565,7 +587,7 @@ snippet_skipped=0
 for snippet in "${snippet_files[@]}"; do
 	[[ -f "$snippet" ]] || continue
 	ext="${snippet##*.}"
-	profile_rel="${SHELL_PROFILES[$ext]:-}"
+	profile_rel="$(shell_profile_for "$ext")"
 
 	if [[ -z "$profile_rel" ]]; then
 		status "SKIP" "$(basename "$snippet")  (no profile mapping for .${ext})"
@@ -584,7 +606,7 @@ echo "  ${injected} snippet(s) processed, ${snippet_skipped} skipped."
 # Purge stale guard blocks — blocks whose snippet file no longer exists in the
 # repo but whose guard is still present in a profile file.
 purged=0
-for profile_rel in "${SHELL_PROFILES[@]}"; do
+while IFS= read -r profile_rel; do
 	profile="${TARGET_DIR}/${profile_rel}"
 	[[ -f "$profile" ]] || continue
 
@@ -598,7 +620,7 @@ for profile_rel in "${SHELL_PROFILES[@]}"; do
 			((purged++)) || true
 		fi
 	done < <(grep -oP '(?<=# >>> dotfiles:)[^ >]+' "$profile" 2>/dev/null || true)
-done
+done < <(shell_profile_values)
 
 [[ "$purged" -gt 0 ]] && echo "  ${purged} stale snippet block(s) purged."
 
