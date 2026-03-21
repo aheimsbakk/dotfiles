@@ -1,4 +1,4 @@
-# dotfiles
+# dot-files
 
 Personal configuration files for Vim, Kitty, and tmux — version-controlled and installed via a single script.
 
