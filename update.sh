@@ -295,7 +295,13 @@ fi
 
 check_requirements
 
-TARGET_DIR="$(realpath -m "$TARGET_DIR")"
+# realpath -m is GNU-only; macOS ships BSD realpath which lacks -m.
+# Since we validate existence on the next line, a portable fallback suffices.
+if command -v realpath &>/dev/null; then
+	TARGET_DIR="$(realpath "$TARGET_DIR" 2>/dev/null)" || TARGET_DIR="$(cd "$TARGET_DIR" && pwd)"
+else
+	TARGET_DIR="$(cd "$TARGET_DIR" && pwd)"
+fi
 [[ -d "$TARGET_DIR" ]] || die "target directory does not exist: ${TARGET_DIR}"
 
 # ─── Core: dotfile symlinking ─────────────────────────────────────────────────
