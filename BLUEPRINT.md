@@ -19,6 +19,8 @@ no framework — just bash and symlinks.
 │   ├── RULES.md
 │   ├── update.sh
 │   └── WORKLOG_TEMPLATE.md
+├── snippets/                    # Shell snippets injected into user profiles
+│   └── powerline-go.bash        # powerline-go prompt setup for bash
 ├── .vimrc                       # Vim configuration
 ├── .gitignore
 ├── AGENTS.md                    # Agent protocol (from agentic-template)
@@ -27,7 +29,7 @@ no framework — just bash and symlinks.
 ├── opencode.json                # opencode AI config
 ├── scripts/
 │   └── bump-version.sh          # Version bumping utility
-└── update.sh                    # Dotfile symlink installer
+└── update.sh                    # Dotfile installer, snippet injector, tool downloader
 ```
 
 ---
@@ -45,31 +47,43 @@ Glob patterns (`*`) are supported and expand against the repository at runtime.
 
 ---
 
-## update.sh — Dotfile Installer
+## update.sh — Installer
 
 **Location:** `./update.sh` (repo root)  
 **Must be run from:** anywhere — it resolves its own location via `BASH_SOURCE[0]`.  
 **Default target:** `$HOME`
 
-### Behaviour
-- Only files are symlinked; directories are never linked directly.
-- Missing parent directories in the target are created with `mkdir -p`.
-- Existing regular files at the destination are backed up as `<file>.bak` before
-  being replaced.
-- Stale or wrong symlinks are removed and re-created.
-- Correct symlinks are left untouched (`OK`).
-- Fully idempotent — safe to run repeatedly.
+The script runs three phases in order: **dotfiles → snippets → powerline-go**.
 
 ### Options
 | Flag | Effect |
 |---|---|
+| `-b` | Back up existing regular files as `<file>.bak` before replacing |
 | `-d DIR` | Install into `DIR` instead of `$HOME` |
 | `-n` | Dry-run: print actions without making changes |
-| `-v` | Print version and exit |
+| `-V VERSION` | powerline-go version to install (e.g. `v1.26`; default: latest) |
+| `-v` | Print script version and exit |
 | `-h` | Print help and exit |
 
-### Adding a new dotfile
-Edit the `DOTFILES` array in `update.sh`:
+### Status labels
+| Label | Meaning |
+|---|---|
+| `OK` | Already correct — no-op |
+| `LINK` | Symlink created |
+| `MKDIR` | Parent directory created |
+| `SKIP` | Regular file exists at destination; use `-b` to replace |
+| `BACKUP` | Existing file moved to `<file>.bak` (only with `-b`) |
+| `UNLINK` | Stale/wrong symlink removed before re-linking |
+| `MISSING` | Glob matched no files in the repository |
+| `CREATE` | New profile file created (was absent) |
+| `INJECT` | Snippet block appended to profile |
+| `DOWNLOAD` | Binary fetched from GitHub (dry-run label) |
+| `INSTALLED` | Binary downloaded, placed, and made executable |
+
+### Phase 1 — Dotfiles
+Symlinks files from the repo into `TARGET_DIR`. Only files are linked; directories are never linked directly. Missing parent directories are created automatically. Fully idempotent.
+
+Add new dotfiles by editing the `DOTFILES` array at the top of `update.sh`:
 ```bash
 DOTFILES=(
     ".vimrc:.vimrc"
@@ -78,8 +92,47 @@ DOTFILES=(
     ".tmux.conf:.tmux.conf"
 )
 ```
-Format: `"REPO_RELATIVE_PATH:TARGET_RELATIVE_PATH"`.  
-Glob `*` in the target is replaced with the matched filename from the source.
+Format: `"REPO_RELATIVE_PATH:TARGET_RELATIVE_PATH"`. Glob `*` in the target is replaced with the matched filename from the source.
+
+### Phase 2 — Shell snippets
+Files in `snippets/` are named `<anything>.<shell>`. The extension determines which profile file receives the injection:
+
+| Extension | Profile file |
+|---|---|
+| `.bash` | `.bashrc` |
+| `.zsh` | `.zshrc` |
+
+Each snippet is wrapped in a unique guard block and appended to the profile:
+```bash
+# >>> dotfiles:powerline-go.bash >>>
+source "/path/to/repo/snippets/powerline-go.bash"
+# <<< dotfiles:powerline-go.bash <<<
+```
+The guard makes injection idempotent — re-running never duplicates the block. If the profile file does not exist it is created. To add support for a new shell, add an entry to the `SHELL_PROFILES` associative array in `update.sh`.
+
+### Phase 3 — powerline-go
+Downloads the correct binary for the current OS and architecture from the [justjanne/powerline-go](https://github.com/justjanne/powerline-go) GitHub releases and installs it to `TARGET_DIR/.local/bin/powerline-go`. A version stamp file (`.local/bin/.powerline-go-version`) prevents redundant re-downloads. Pass `-V VERSION` to pin a specific release tag; omit it to always resolve and install the latest.
+
+**Arch mapping:**
+
+| `uname -m` | Asset suffix |
+|---|---|
+| `x86_64` | `amd64` |
+| `aarch64` / `arm64` | `arm64` |
+| `armv7l` / `armv6l` | `arm` |
+| `i386` / `i686` | `386` |
+
+---
+
+## Snippets (snippets/)
+
+Shell snippets are small, self-contained shell scripts sourced into the user's interactive shell profile by `update.sh`. Naming convention: `<description>.<shell-ext>`.
+
+| File | Shell | Purpose |
+|---|---|---|
+| `powerline-go.bash` | bash | Configures `powerline-go` as the `PS1` prompt via `PROMPT_COMMAND` |
+
+The `powerline-go.bash` snippet guards itself: it only activates when `$TERM != linux` and the `powerline-go` binary is on `PATH`.
 
 ---
 
@@ -151,10 +204,10 @@ Glob `*` in the target is replaced with the matched filename from the source.
 ## Versioning
 
 Managed by `scripts/bump-version.sh [patch|minor|major]`.  
-Current version tracked in that script. Every merged change must bump the version.
+Current version stored in `.version`. Every merged change must bump the version.
 
 | Bump | When |
 |---|---|
-| patch | Bug fixes, config tweaks |
-| minor | New dotfile added, new feature in `update.sh` |
+| patch | Bug fixes, config tweaks, snippet edits |
+| minor | New dotfile, new snippet, new feature in `update.sh` |
 | major | Breaking change to `update.sh` interface or repo layout |
