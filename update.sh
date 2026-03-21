@@ -32,6 +32,7 @@ readonly REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES=(
 	".vimrc:.vimrc"
 	".config/kitty/*:.config/kitty/*"
+	".tmux.conf:.tmux.conf"
 )
 
 # ─── Shell profile map ────────────────────────────────────────────────────────

@@ -25,6 +25,7 @@ no framework — just bash and symlinks.
 ├── .gitignore
 ├── AGENTS.md                    # Agent protocol (from agentic-template)
 ├── BLUEPRINT.md                 # This file
+├── README.md                    # User-facing documentation and keybinding reference
 ├── CONTEXT.md                   # Session context for agents
 ├── opencode.json                # opencode AI config
 ├── scripts/
