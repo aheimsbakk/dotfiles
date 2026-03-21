@@ -549,17 +549,17 @@ for entry in "${DOTFILES[@]}"; do
 	dest_pattern="${entry##*:}"
 
 	# Expand glob against the repository.
-	shopt -s nullglob
+	# Use a subshell so nullglob and cd are fully isolated.
 	matches=()
 	while IFS= read -r _match; do
-		matches+=("$_match")
-	done < <(cd "$REPO_DIR" && printf '%s\n' ${repo_pattern})
-	shopt -u nullglob
-	_prefixed=()
-	for _m in "${matches[@]}"; do
-		_prefixed+=("${REPO_DIR}/${_m}")
-	done
-	matches=("${_prefixed[@]}")
+		[[ -n "$_match" ]] && matches+=("${REPO_DIR}/${_match}")
+	done < <(
+		cd "$REPO_DIR" || exit 1
+		shopt -s nullglob
+		for _f in ${repo_pattern}; do
+			printf '%s\n' "$_f"
+		done
+	)
 
 	if [[ ${#matches[@]} -eq 0 ]]; then
 		status "MISSING" "${repo_pattern}  (no files matched in repo)"
