@@ -16,9 +16,13 @@ Personal configuration files for Vim, Kitty, and tmux — version-controlled and
 ## Quick start
 
 ```bash
-git clone <your-repo-url> ~/dotfiles
+# Download and install dot-files, and powerline-go
+git clone git@github.com:aheimsbakk/dot-files.git ~/dotfiles
 cd ~/dotfiles
-./update.sh
+./update.sh -V v1.26
+
+# Prepare to install Vim plugins
+curl -fLo ~/.vim/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
 ```
 
 This will:
