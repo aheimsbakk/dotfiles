@@ -8,8 +8,11 @@
 # The repository must already be checked out manually. Only powerline-go is
 # downloaded from the internet; everything else is sourced from the repo.
 #
+# Requirements: bash ≥ 4.0, curl, python3
+# Run './update.sh --check' to verify requirements without installing anything.
+#
 # Usage:
-#   ./update.sh [-b] [-d DIR] [-n] [-V VERSION] [-h] [-v]
+#   ./update.sh [-b] [-c] [-d DIR] [-n] [-V VERSION] [-h] [-v]
 
 set -euo pipefail
 
@@ -66,9 +69,10 @@ Install dotfiles, shell snippets, and powerline-go from this repository.
 
 Options:
   -b            Back up existing regular files as <file>.bak before replacing
+  -c, --check   Check requirements only; print install hints and exit
   -d DIR        Target directory (default: \$HOME)
   -n            Dry-run: show what would be done without making changes
-  -V VERSION    powerline-go version to install (default: latest, e.g. v1.26)
+  -V VERSION    powerline-go version to install (default: v1.26)
   -h, --help    Show this help message and exit
   -v, --version Show script version and exit
 
@@ -132,12 +136,83 @@ resolve_latest_version() {
 	printf '%s' "${response}" | python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'])"
 }
 
+# ─── Requirements check ───────────────────────────────────────────────────────
+
+# check_requirements
+#   Verifies that all runtime dependencies (curl, python3) are available.
+#   On failure, prints OS-specific installation instructions and exits with 1.
+#   On success, prints a confirmation and returns 0.
+check_requirements() {
+	local missing=()
+	local tool
+
+	for tool in curl python3; do
+		if ! command -v "$tool" &>/dev/null; then
+			missing+=("$tool")
+		fi
+	done
+
+	if [[ ${#missing[@]} -eq 0 ]]; then
+		echo "Requirements satisfied: curl $(curl --version | head -1 | awk '{print $2}'), python3 $(python3 --version 2>&1 | awk '{print $2}')"
+		return 0
+	fi
+
+	echo "error: the following required tools are not installed: ${missing[*]}" >&2
+	echo "" >&2
+
+	# Detect OS family for targeted install instructions
+	local os_id=""
+	if [[ "$(uname -s)" == "Darwin" ]]; then
+		os_id="macos"
+	elif [[ -f /etc/os-release ]]; then
+		# Source only the ID field to avoid polluting the environment
+		os_id="$(. /etc/os-release && echo "${ID_LIKE:-$ID}")"
+	fi
+
+	echo "Install the missing tools using the appropriate command for your system:" >&2
+	echo "" >&2
+
+	case "$os_id" in
+	macos)
+		echo "  macOS (Homebrew):" >&2
+		echo "    brew install ${missing[*]}" >&2
+		echo "" >&2
+		echo "  If Homebrew is not installed, visit: https://brew.sh" >&2
+		;;
+	*debian* | *ubuntu*)
+		echo "  Debian / Ubuntu:" >&2
+		echo "    sudo apt-get update && sudo apt-get install -y ${missing[*]}" >&2
+		;;
+	*fedora* | *rhel* | *centos* | *suse*)
+		echo "  Fedora / RHEL / CentOS / openSUSE:" >&2
+		echo "    sudo dnf install -y ${missing[*]}" >&2
+		echo "  (On older CentOS/RHEL 7 use 'yum' instead of 'dnf')" >&2
+		;;
+	*)
+		# Generic fallback — show all three
+		echo "  macOS (Homebrew):" >&2
+		echo "    brew install ${missing[*]}" >&2
+		echo "" >&2
+		echo "  Debian / Ubuntu:" >&2
+		echo "    sudo apt-get update && sudo apt-get install -y ${missing[*]}" >&2
+		echo "" >&2
+		echo "  Fedora / RHEL / CentOS / openSUSE:" >&2
+		echo "    sudo dnf install -y ${missing[*]}" >&2
+		;;
+	esac
+
+	echo "" >&2
+	echo "After installing the missing tools, re-run: ./${SCRIPT_NAME}" >&2
+	exit 1
+}
+
 # ─── Argument parsing ─────────────────────────────────────────────────────────
 
 TARGET_DIR="${HOME}"
 DRY_RUN=0
 BACKUP=0
-POWERLINE_VERSION="" # empty = resolve latest at runtime
+CHECK_ONLY=0
+POWERLINE_VERSION="v1.26" # default pinned version; override with -V
 
 while [[ $# -gt 0 ]]; do
 	case "$1" in
@@ -148,6 +223,10 @@ while [[ $# -gt 0 ]]; do
 	-v | --version)
 		version
 		exit 0
+		;;
+	-c | --check)
+		CHECK_ONLY=1
+		shift
 		;;
 	-b)
 		BACKUP=1
@@ -185,6 +264,14 @@ while [[ $# -gt 0 ]]; do
 done
 
 # ─── Validation ───────────────────────────────────────────────────────────────
+
+# Always verify requirements first; exits with instructions if tools are absent.
+if [[ "$CHECK_ONLY" == "1" ]]; then
+	check_requirements
+	exit 0
+fi
+
+check_requirements
 
 TARGET_DIR="$(realpath -m "$TARGET_DIR")"
 [[ -d "$TARGET_DIR" ]] || die "target directory does not exist: ${TARGET_DIR}"
@@ -254,6 +341,58 @@ link_file() {
 }
 
 # ─── Core: snippet injection ──────────────────────────────────────────────────
+
+# purge_snippet SNIPPET_NAME PROFILE_FILE
+#   Removes a previously-injected guard block from PROFILE_FILE.
+#   Deletes the opening guard line, the source line, the closing guard line,
+#   and the blank line that inject_snippet prepends before the opening guard.
+#   No-op if the guard is not present. Respects DRY_RUN.
+purge_snippet() {
+	local name="$1"    # bare filename, e.g. "powerline-go.bash"
+	local profile="$2" # absolute path to profile file
+
+	[[ -f "$profile" ]] || return 0
+
+	local guard="# >>> dotfiles:${name} >>>"
+
+	# Nothing to do if the guard is not in the file
+	if ! grep -qF "$guard" "$profile" 2>/dev/null; then
+		return 0
+	fi
+
+	if [[ "$DRY_RUN" == "1" ]]; then
+		status "PURGE" "${profile}  (would remove ${name} block)"
+		return
+	fi
+
+	# Escape the name for use as a literal sed pattern (dots → \.)
+	local escaped_name
+	escaped_name="$(printf '%s' "$name" | sed 's/[.[\*^$]/\\&/g')"
+
+	local open_guard="# >>> dotfiles:${escaped_name} >>>"
+	local close_guard="# <<< dotfiles:${escaped_name} <<<"
+
+	# Two-pass removal:
+	#   Pass 1: delete the guard block (open guard line through close guard line).
+	#   Pass 2: remove a blank line that immediately precedes the (now-gone) block
+	#           by collapsing consecutive blank lines left by pass 1.
+	# We use a temp file to avoid in-place sed portability issues with -i on Linux.
+	local tmp
+	tmp="$(mktemp)"
+	# shellcheck disable=SC2064
+	trap "rm -f '${tmp}'" RETURN
+
+	# Pass 1 — delete from opening guard to closing guard (inclusive)
+	sed "/^${open_guard}$/,/^${close_guard}$/d" "$profile" >"$tmp"
+
+	# Pass 2 — collapse runs of 2+ consecutive blank lines down to one blank
+	# line so we don't leave a double-blank gap where the block was.
+	# awk is portable and handles any run length correctly.
+	awk 'prev_blank && /^[[:space:]]*$/ { next } { prev_blank = /^[[:space:]]*$/ } 1' \
+		"$tmp" >"$profile"
+
+	status "PURGED" "${profile}  (${name} block removed)"
+}
 
 # inject_snippet SNIPPET_FILE PROFILE_FILE
 #   Appends a guarded source block to PROFILE_FILE if not already present.
@@ -442,14 +581,28 @@ done
 echo ""
 echo "  ${injected} snippet(s) processed, ${snippet_skipped} skipped."
 
-# ── 3. powerline-go ───────────────────────────────────────────────────────────
+# Purge stale guard blocks — blocks whose snippet file no longer exists in the
+# repo but whose guard is still present in a profile file.
+purged=0
+for profile_rel in "${SHELL_PROFILES[@]}"; do
+	profile="${TARGET_DIR}/${profile_rel}"
+	[[ -f "$profile" ]] || continue
 
-if [[ -z "$POWERLINE_VERSION" ]]; then
-	echo ""
-	echo "── resolving latest powerline-go version ─────────────────────────────────────"
-	POWERLINE_VERSION="$(resolve_latest_version)"
-	echo "  Latest: ${POWERLINE_VERSION}"
-fi
+	# Extract every guard name present in this profile
+	while IFS= read -r guard_name; do
+		[[ -n "$guard_name" ]] || continue
+		# Check whether a matching snippet file still exists in the repo
+		local_snippet="${REPO_DIR}/snippets/${guard_name}"
+		if [[ ! -f "$local_snippet" ]]; then
+			purge_snippet "$guard_name" "$profile"
+			((purged++)) || true
+		fi
+	done < <(grep -oP '(?<=# >>> dotfiles:)[^ >]+' "$profile" 2>/dev/null || true)
+done
+
+[[ "$purged" -gt 0 ]] && echo "  ${purged} stale snippet block(s) purged."
+
+# ── 3. powerline-go ───────────────────────────────────────────────────────────
 
 install_powerline_go "$POWERLINE_VERSION"
 

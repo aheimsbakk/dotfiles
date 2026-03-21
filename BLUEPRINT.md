@@ -52,19 +52,33 @@ Glob patterns (`*`) are supported and expand against the repository at runtime.
 
 **Location:** `./update.sh` (repo root)  
 **Must be run from:** anywhere — it resolves its own location via `BASH_SOURCE[0]`.  
-**Default target:** `$HOME`
+**Default target:** `$HOME`  
+**Requirements:** `bash` ≥ 4.0, `curl`, `python3`
 
-The script runs three phases in order: **dotfiles → snippets → powerline-go**.
+The script runs three phases in order: **dotfiles → snippets → powerline-go**.  
+Requirements are verified automatically at startup; if any tool is missing the script prints OS-specific install instructions and exits.
 
 ### Options
 | Flag | Effect |
 |---|---|
 | `-b` | Back up existing regular files as `<file>.bak` before replacing |
+| `-c`, `--check` | Check requirements only; print install hints and exit |
 | `-d DIR` | Install into `DIR` instead of `$HOME` |
 | `-n` | Dry-run: print actions without making changes |
-| `-V VERSION` | powerline-go version to install (e.g. `v1.26`; default: latest) |
+| `-V VERSION` | powerline-go version to install (default: `v1.26`) |
 | `-v` | Print script version and exit |
 | `-h` | Print help and exit |
+
+### Requirements check (`check_requirements`)
+Called automatically before any installation. Also exposed via `-c` / `--check` for standalone use.  
+Checks for `curl` and `python3`. On failure, detects the OS family and prints the appropriate install command:
+
+| OS | Command shown |
+|---|---|
+| macOS (Homebrew) | `brew install <missing>` |
+| Debian / Ubuntu | `sudo apt-get install -y <missing>` |
+| Fedora / RHEL / CentOS / openSUSE | `sudo dnf install -y <missing>` |
+| Unknown | All three options shown |
 
 ### Status labels
 | Label | Meaning |
@@ -78,6 +92,8 @@ The script runs three phases in order: **dotfiles → snippets → powerline-go*
 | `MISSING` | Glob matched no files in the repository |
 | `CREATE` | New profile file created (was absent) |
 | `INJECT` | Snippet block appended to profile |
+| `PURGE` | Stale guard block would be removed (dry-run label) |
+| `PURGED` | Stale guard block removed from profile |
 | `DOWNLOAD` | Binary fetched from GitHub (dry-run label) |
 | `INSTALLED` | Binary downloaded, placed, and made executable |
 
@@ -111,8 +127,10 @@ source "/path/to/repo/snippets/powerline-go.bash"
 ```
 The guard makes injection idempotent — re-running never duplicates the block. If the profile file does not exist it is created. To add support for a new shell, add an entry to the `SHELL_PROFILES` associative array in `update.sh`.
 
+After processing current snippets, the script scans every known profile for guard blocks whose snippet file **no longer exists** in `snippets/`. Any stale block is removed by `purge_snippet`, which deletes the open-guard line, the `source` line, and the close-guard line, then collapses any resulting double-blank lines. This keeps profiles clean when snippets are deleted from the repo.
+
 ### Phase 3 — powerline-go
-Downloads the correct binary for the current OS and architecture from the [justjanne/powerline-go](https://github.com/justjanne/powerline-go) GitHub releases and installs it to `TARGET_DIR/.local/bin/powerline-go`. A version stamp file (`.local/bin/.powerline-go-version`) prevents redundant re-downloads. Pass `-V VERSION` to pin a specific release tag; omit it to always resolve and install the latest.
+Downloads the correct binary for the current OS and architecture from the [justjanne/powerline-go](https://github.com/justjanne/powerline-go) GitHub releases and installs it to `TARGET_DIR/.local/bin/powerline-go`. A version stamp file (`.local/bin/.powerline-go-version`) prevents redundant re-downloads. The default version is **`v1.26`**; pass `-V VERSION` to override.
 
 **Arch mapping:**
 

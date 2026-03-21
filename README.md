@@ -4,14 +4,7 @@ Personal configuration files for Vim, Kitty, and tmux — version-controlled and
 
 ## Requirements
 
-| Tool | Notes |
-|---|---|
-| `bash` ≥ 4.0 | Required by `update.sh` (associative arrays) |
-| `curl` | Required to download powerline-go |
-| `python3` | Required to parse the GitHub API response |
-| `vim` | With [vim-plug](https://github.com/junegunn/vim-plug) for plugins |
-| `kitty` | Terminal emulator |
-| `tmux` | Terminal multiplexer |
+`bash` ≥ 4.0, `curl`, `python3`. Run `./update.sh --check` to verify; missing tools are reported with OS-specific install instructions.
 
 ## Quick start
 
@@ -19,7 +12,7 @@ Personal configuration files for Vim, Kitty, and tmux — version-controlled and
 # Download and install dot-files, and powerline-go
 git clone git@github.com:aheimsbakk/dot-files.git ~/dotfiles
 cd ~/dotfiles
-./update.sh -V v1.26
+./update.sh
 
 # Prepare to install Vim plugins
 curl -fLo ~/.vim/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
@@ -28,7 +21,7 @@ curl -fLo ~/.vim/autoload/plug.vim --create-dirs https://raw.githubusercontent.c
 This will:
 1. Symlink all dotfiles into `$HOME`
 2. Inject shell snippets into `~/.bashrc` / `~/.zshrc`
-3. Download the latest `powerline-go` binary into `~/.local/bin/`
+3. Download `powerline-go v1.26` into `~/.local/bin/`
 
 After the first run, bootstrap Vim plugins:
 
@@ -42,39 +35,15 @@ After the first run, bootstrap Vim plugins:
 Usage: update.sh [OPTIONS]
 
   -b            Back up existing files as <file>.bak before replacing
+  -c, --check   Check requirements only; print install hints and exit
   -d DIR        Target directory (default: $HOME)
   -n            Dry-run: show what would be done without making changes
-  -V VERSION    powerline-go version to install (e.g. v1.26; default: latest)
+  -V VERSION    powerline-go version to install (default: v1.26)
   -h            Show help and exit
   -v            Show script version and exit
 ```
 
-**Examples:**
-
-```bash
-./update.sh                  # install into $HOME, latest powerline-go
-./update.sh -n               # dry-run, see what would change
-./update.sh -b               # back up any existing files before replacing
-./update.sh -V v1.26         # pin a specific powerline-go version
-./update.sh -d ~/test        # install into a different directory
-```
-
 The script is fully **idempotent** — safe to re-run at any time. It will only act on what has actually changed.
-
-### Status labels
-
-| Label | Meaning |
-|---|---|
-| `OK` | Already correct — no-op |
-| `LINK` | Symlink created |
-| `MKDIR` | Parent directory created |
-| `SKIP` | Regular file exists; use `-b` to replace |
-| `BACKUP` | Existing file moved to `<file>.bak` |
-| `UNLINK` | Stale symlink removed before re-linking |
-| `MISSING` | Glob matched no files in the repository |
-| `CREATE` | New shell profile file created |
-| `INJECT` | Snippet block appended to profile |
-| `INSTALLED` | powerline-go downloaded and installed |
 
 ### Adding a new dotfile
 
@@ -107,18 +76,7 @@ source "/path/to/repo/snippets/my-snippet.bash"
 # <<< dotfiles:my-snippet.bash <<<
 ```
 
----
-
-## Managed files
-
-| Repository path | Installed to |
-|---|---|
-| `.vimrc` | `~/.vimrc` |
-| `.config/kitty/kitty.conf` | `~/.config/kitty/kitty.conf` |
-| `.config/kitty/current-theme.conf` | `~/.config/kitty/current-theme.conf` |
-| `.tmux.conf` | `~/.tmux.conf` |
-| `snippets/powerline-go.bash` | sourced from `~/.bashrc` |
-| *(binary)* powerline-go | `~/.local/bin/powerline-go` |
+**Removing a snippet:** delete the file from `snippets/` and re-run `./update.sh`. The script automatically detects and removes any stale guard blocks from all profile files, so no manual cleanup is needed.
 
 ---
 
