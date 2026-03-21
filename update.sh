@@ -571,7 +571,8 @@ for entry in "${DOTFILES[@]}"; do
 		[[ -f "$src" ]] || continue
 
 		if [[ "$dest_pattern" == *"*"* ]]; then
-			dest_rel="${dest_pattern/\*/"$(basename "$src")"}"
+			_basename="$(basename "$src")"
+			dest_rel="${dest_pattern/\*/${_basename}}"
 		else
 			dest_rel="$dest_pattern"
 		fi
