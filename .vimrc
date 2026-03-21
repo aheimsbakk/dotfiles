@@ -2,7 +2,6 @@
 set nocompatible
 "set number relativenumber  " Hybrid line numbers
 "set number                 " Line numbers
-set clipboard=unnamedplus  " System clipboard integration
 set ignorecase smartcase   " Better searching
 set hlsearch               " Highlight all search matches
 set incsearch              " Highlight matches dynamically as you type
@@ -11,6 +10,13 @@ set scrolloff=8            " Scrolloff margin
 set updatetime=200
 set encoding=utf-8
 set mouse=a                " Enable mouse support
+
+" --- System Clipboard Integration ---
+if has("mac") || has("macunix")
+  set clipboard=unnamed      " Use * register on macOS
+else
+  set clipboard=unnamedplus  " Use + register on Linux
+endif
 
 " --- Formatting ---
 set tabstop=2 shiftwidth=2 expandtab autoindent smartindent
