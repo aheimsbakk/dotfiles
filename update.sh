@@ -33,9 +33,9 @@ readonly REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 #   - Missing parent directories in TARGET_DIR are created automatically.
 
 DOTFILES=(
-	".vimrc:.vimrc"
-	".config/kitty/*:.config/kitty/*"
-	".tmux.conf:.tmux.conf"
+	"dots/.vimrc:.vimrc"
+	"dots/.config/kitty/*:.config/kitty/*"
+	"dots/.tmux.conf:.tmux.conf"
 )
 
 # ─── Shell profile map ────────────────────────────────────────────────────────
