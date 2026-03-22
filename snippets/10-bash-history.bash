@@ -2,7 +2,7 @@
 HISTSIZE=1000
 
 # Set history file size to something large
-HISTFILESIZE=100000
+HISTFILESIZE=50000
 
 # Append history to file when closing
 shopt -s histappend
