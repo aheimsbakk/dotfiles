@@ -8,11 +8,13 @@ HISTFILESIZE=100000
 shopt -s histappend
 
 # Store history in realtime in case of crash, don't read in realtime
-PROMPT_COMMAND="history -a"
-#export PROMPT_COMMAND='history -a; history -n'
+PROMPT_COMMAND="history -a"  # ; history -n
 
 # Set history format
 HISTTIMEFORMAT='| %F %T | '
 
 # Ignore duplicates and commands starting with space
 HISTCONTROL=ignoreboth
+
+# Ignore these commands from history
+#HISTIGNORE='ls:cd:pwd'
