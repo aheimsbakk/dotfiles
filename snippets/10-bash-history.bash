@@ -7,7 +7,8 @@ HISTFILESIZE=100000
 # Append history to file when closing
 shopt -s histappend
 
-# Store history in realtime
+# Store history in realtime in case of crash, don't read in realtime
+PROMPT_COMMAND="history -a"
 #export PROMPT_COMMAND='history -a; history -n'
 
 # Set history format
