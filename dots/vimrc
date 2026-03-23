@@ -95,6 +95,16 @@ function! s:on_lsp_buffer_enabled() abort
     nmap <buffer> K <plug>(lsp-hover)
     nmap <buffer> <leader>rn <plug>(lsp-rename)
     nmap <buffer> <leader>f <plug>(lsp-document-format)
+
+    " Code Action (Fikser problemet når du ser A>)
+    nmap <buffer> <leader>la <plug>(lsp-code-action)
+
+    " Vis liste over alle feil/hint i dokumentet
+    nmap <buffer> <leader>ld <plug>(lsp-document-diagnostics)
+
+    " Hopp mellom feil (Neste / Forrige)
+    nmap <buffer> <leader>ln <plug>(lsp-next-diagnostic)
+    nmap <buffer> <leader>lp <plug>(lsp-previous-diagnostic)
 endfunction
 
 augroup lsp_install
