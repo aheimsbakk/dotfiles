@@ -157,13 +157,17 @@ Enabled layouts cycle with `next_layout`: `tall`, `fat`, `grid`, `horizontal`, `
 
 #### LSP
 
-| Key | Action |
-|---|---|
-| `gd` | Go to definition |
-| `gr` | Find references |
-| `K` | Hover documentation |
-| `<leader>rn` | Rename symbol |
-| `<leader>f` | Format document |
+ | Key | Action |
+ |---|---|
+ | `gd` | Go to definition |
+ | `gr` | Find references |
+ | `K` | Hover documentation |
+ | `<leader>rn` | Rename symbol |
+ | `<leader>f` | Format document |
+ | `<leader>la` | Code action |
+ | `<leader>ld` | Document diagnostics (list all diagnostics in buffer) |
+ | `<leader>ln` | Next diagnostic |
+ | `<leader>lp` | Previous diagnostic |
 
 #### Plugins
 
