@@ -53,7 +53,7 @@ Glob patterns (`*`) are supported and expand against the repository at runtime.
 **Location:** `./update.sh` (repo root)  
 **Must be run from:** anywhere — it resolves its own location via `BASH_SOURCE[0]`.  
 **Default target:** `$HOME`  
-**Requirements:** `bash` ≥ 4.0, `curl`, `python3`
+**Requirements:** `bash` ≥ 5.0, `curl`, `python3`
 
 The script runs three phases in order: **dotfiles → snippets → powerline-go**.  
 Requirements are verified automatically at startup; if any tool is missing the script prints OS-specific install instructions and exits.
@@ -125,7 +125,9 @@ Each snippet is wrapped in a unique guard block and appended to the profile:
 source "/path/to/repo/snippets/powerline-go.bash"
 # <<< dotfiles:powerline-go.bash <<<
 ```
-The guard makes injection idempotent — re-running never duplicates the block. If the profile file does not exist it is created. To add support for a new shell, add an entry to the `SHELL_PROFILES` associative array in `update.sh`.
+The guard makes injection idempotent — re-running never duplicates the block. If the profile file does not exist it is created. To add support for a new shell, add an entry to the `SHELL_PROFILES` associative array (`declare -A`) in `update.sh`.
+
+Snippets are processed in **lexicographic filename order** — numeric prefixes (`00-`, `10-`, `90-`) define the injection order. If existing guard blocks in a profile are out of order, `reorder_snippets` purges and re-injects them in the correct order automatically.
 
 After processing current snippets, the script scans every known profile for guard blocks whose snippet file **no longer exists** in `snippets/`. Any stale block is removed by `purge_snippet`, which deletes the open-guard line, the `source` line, and the close-guard line, then collapses any resulting double-blank lines. This keeps profiles clean when snippets are deleted from the repo.
 

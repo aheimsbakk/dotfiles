@@ -3,12 +3,14 @@
 #
 # - Symlinks dotfiles into TARGET_DIR (default: $HOME)
 # - Injects shell snippets from snippets/ into the appropriate shell profile
+#   in chronological (lexicographic filename) order; reorders existing blocks
+#   if they are out of order.
 # - Downloads powerline-go binary for the current OS/arch into ~/.local/bin
 #
 # The repository must already be checked out manually. Only powerline-go is
 # downloaded from the internet; everything else is sourced from the repo.
 #
-# Requirements: bash ≥ 4.0, curl, python3
+# Requirements: bash ≥ 5.0, curl, python3
 # Run './update.sh --check' to verify requirements without installing anything.
 #
 # Usage:
@@ -44,30 +46,24 @@ DOTFILES=(
 # Snippets in snippets/ are named <anything>.<shell-ext> and are sourced into
 # the matching profile via a guarded include block.
 
-# Plain "ext=profile" pairs — compatible with Bash 3.2 (macOS default).
-SHELL_PROFILES=(
-	"bash=.bashrc"
-	"zsh=.zshrc"
+declare -A SHELL_PROFILES=(
+	[bash]=".bashrc"
+	[zsh]=".zshrc"
 )
 
 # shell_profile_for EXT
 #   Prints the profile path for the given shell extension, or nothing if unknown.
 shell_profile_for() {
-	local want="$1" entry
-	for entry in "${SHELL_PROFILES[@]}"; do
-		if [[ "${entry%%=*}" == "$want" ]]; then
-			printf '%s' "${entry#*=}"
-			return
-		fi
-	done
+	local want="$1"
+	printf '%s' "${SHELL_PROFILES[$want]:-}"
 }
 
 # shell_profile_values
-#   Prints each unique profile path (right-hand side of every SHELL_PROFILES entry).
+#   Prints each unique profile path (values of SHELL_PROFILES).
 shell_profile_values() {
-	local entry
-	for entry in "${SHELL_PROFILES[@]}"; do
-		printf '%s\n' "${entry#*=}"
+	local val
+	for val in "${SHELL_PROFILES[@]}"; do
+		printf '%s\n' "$val"
 	done
 }
 
@@ -475,6 +471,85 @@ inject_snippet() {
 	fi
 }
 
+# reorder_snippets PROFILE_FILE SNIPPET_FILES...
+#   Ensures that all guard blocks in PROFILE_FILE appear in the same order as
+#   the sorted SNIPPET_FILES list.  If the current order already matches, this
+#   is a no-op.  Otherwise every known guard block is purged and re-injected in
+#   the correct order.  Respects DRY_RUN.
+reorder_snippets() {
+	local profile="$1"
+	shift
+	local -a ordered_snippets=("$@")
+
+	[[ -f "$profile" ]] || return 0
+	[[ ${#ordered_snippets[@]} -eq 0 ]] && return 0
+
+	# Build the list of guard names that are actually present in the profile,
+	# in the order they appear.
+	local -a present_names=()
+	while IFS= read -r guard_name; do
+		[[ -n "$guard_name" ]] && present_names+=("$guard_name")
+	done < <(grep -o '# >>> dotfiles:[^ >]*' "$profile" 2>/dev/null |
+		sed 's/# >>> dotfiles://' || true)
+
+	[[ ${#present_names[@]} -eq 0 ]] && return 0
+
+	# Build the expected order: only snippets that are present in the profile,
+	# in sorted (lexicographic) filename order.
+	local -a expected_names=()
+	local snippet
+	for snippet in "${ordered_snippets[@]}"; do
+		local sname
+		sname="$(basename "$snippet")"
+		local pname
+		for pname in "${present_names[@]}"; do
+			if [[ "$pname" == "$sname" ]]; then
+				expected_names+=("$sname")
+				break
+			fi
+		done
+	done
+
+	# Compare present order with expected order.
+	local needs_reorder=0
+	local i
+	for ((i = 0; i < ${#expected_names[@]}; i++)); do
+		if [[ "${present_names[$i]:-}" != "${expected_names[$i]}" ]]; then
+			needs_reorder=1
+			break
+		fi
+	done
+
+	[[ "$needs_reorder" -eq 0 ]] && return 0
+
+	echo "  Reordering snippet blocks in ${profile} ..."
+
+	if [[ "$DRY_RUN" == "1" ]]; then
+		local n
+		for n in "${expected_names[@]}"; do
+			status "REORDER" "${profile}  (would move ${n} into correct position)"
+		done
+		return
+	fi
+
+	# Purge all present blocks, then re-inject in sorted order.
+	local n
+	for n in "${present_names[@]}"; do
+		purge_snippet "$n" "$profile"
+	done
+	for snippet in "${ordered_snippets[@]}"; do
+		local sname
+		sname="$(basename "$snippet")"
+		local pname
+		for pname in "${present_names[@]}"; do
+			if [[ "$pname" == "$sname" ]]; then
+				inject_snippet "$snippet" "$profile"
+				break
+			fi
+		done
+	done
+}
+
 # ─── Core: powerline-go download ─────────────────────────────────────────────
 
 install_powerline_go() {
@@ -592,9 +667,16 @@ echo ""
 echo "── snippets ──────────────────────────────────────────────────────────────────"
 echo ""
 
+# Collect snippet files and sort them lexicographically so that numeric
+# prefixes (e.g. 00-, 10-, 90-) define a stable chronological order.
 shopt -s nullglob
-snippet_files=("${REPO_DIR}/snippets/"*.*)
+_raw_snippets=("${REPO_DIR}/snippets/"*.*)
 shopt -u nullglob
+
+readarray -t snippet_files < <(
+	printf '%s\n' "${_raw_snippets[@]}" | sort
+)
+unset _raw_snippets
 
 injected=0
 snippet_skipped=0
@@ -617,6 +699,13 @@ done
 
 echo ""
 echo "  ${injected} snippet(s) processed, ${snippet_skipped} skipped."
+
+# Reorder any out-of-order guard blocks in each profile.
+while IFS= read -r profile_rel; do
+	profile="${TARGET_DIR}/${profile_rel}"
+	[[ -f "$profile" ]] || continue
+	reorder_snippets "$profile" "${snippet_files[@]}"
+done < <(shell_profile_values | sort -u)
 
 # Purge stale guard blocks — blocks whose snippet file no longer exists in the
 # repo but whose guard is still present in a profile file.
