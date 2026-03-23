@@ -18,7 +18,7 @@
 
 set -euo pipefail
 
-readonly VERSION="2.0.0"
+readonly VERSION="0.3.1"
 readonly SCRIPT_NAME="$(basename "$0")"
 # Absolute path to the directory that contains this script (the repo root).
 readonly REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
