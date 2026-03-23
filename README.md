@@ -4,7 +4,7 @@ Personal configuration files for Vim, Kitty, and tmux — version-controlled and
 
 ## Requirements
 
-`bash` ≥ 4.0, `curl`, `python3`. Run `./update.sh --check` to verify; missing tools are reported with OS-specific install instructions.
+`bash` ≥ 5.0, `curl`, `python3`. Run `./update.sh --check` to verify; missing tools are reported with OS-specific install instructions.
 
 ## Quick start
 
@@ -77,6 +77,8 @@ source "/path/to/repo/snippets/my-snippet.bash"
 ```
 
 **Removing a snippet:** delete the file from `snippets/` and re-run `./update.sh`. The script automatically detects and removes any stale guard blocks from all profile files, so no manual cleanup is needed.
+
+**Snippet order:** snippets are injected in lexicographic filename order. Prefix filenames with a two-digit number to control load order (e.g. `00-path.bash`, `10-history.bash`, `90-prompt.bash`). If existing blocks in a profile are out of order, re-running `./update.sh` reorders them automatically.
 
 ---
 
