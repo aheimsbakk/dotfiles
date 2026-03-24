@@ -88,31 +88,17 @@ source "/path/to/repo/snippets/my-snippet.bash"
 
 > **Splits** are Kitty windows inside a layout. **Tabs** work like browser tabs.
 
-#### Navigation
+#### Splits
 
 | Key | Action |
 |---|---|
-| `Alt+←` | Focus split to the left |
-| `Alt+→` | Focus split to the right |
-| `Alt+↑` | Focus split above |
-| `Alt+↓` | Focus split below |
-
-#### Resize splits
-
-| Key | Action |
-|---|---|
+| `Ctrl+Shift+Enter` | New split (opens in current directory) |
+| `Alt+←/→/↑/↓` | Focus split in that direction |
 | `Alt+Shift+←` | Narrow current split |
 | `Alt+Shift+→` | Widen current split |
 | `Alt+Shift+↑` | Taller current split |
 | `Alt+Shift+↓` | Shorter current split |
-
-#### Layouts
-
-| Key | Action |
-|---|---|
 | `Alt+Z` | Toggle zoom (stack layout — maximise current split) |
-
-Enabled layouts cycle with `next_layout`: `tall`, `fat`, `grid`, `horizontal`, `vertical`, `stack`.
 
 #### Tabs
 
@@ -125,8 +111,8 @@ Enabled layouts cycle with `next_layout`: `tall`, `fat`, `grid`, `horizontal`, `
 
 | Key | Action |
 |---|---|
-| `Ctrl+Alt+D` / `Cmd+Opt+D` | Switch to dark theme |
-| `Ctrl+Alt+L` / `Cmd+Opt+L` | Switch to light theme |
+| `Ctrl+Alt+D` / `Cmd+Opt+D` | Switch to dark theme (`Gnome-ish gray-on-black`) |
+| `Ctrl+Alt+L` / `Cmd+Opt+L` | Switch to light theme (`Gnome Light`) |
 | `Ctrl+Shift+F12` / `Cmd+Shift+F12` | Open interactive theme switcher |
 
 #### Config
@@ -134,6 +120,12 @@ Enabled layouts cycle with `next_layout`: `tall`, `fat`, `grid`, `horizontal`, `
 | Key | Action |
 |---|---|
 | `Ctrl+Shift+F5` / `Cmd+Ctrl+,` | Reload `kitty.conf` |
+
+#### Mouse
+
+| Gesture | Action |
+|---|---|
+| `Ctrl+Shift+Click` drag | Rectangle selection (works inside Vim/Neovim) |
 
 ---
 
@@ -157,17 +149,17 @@ Enabled layouts cycle with `next_layout`: `tall`, `fat`, `grid`, `horizontal`, `
 
 #### LSP
 
- | Key | Action |
- |---|---|
- | `gd` | Go to definition |
- | `gr` | Find references |
- | `K` | Hover documentation |
- | `<leader>rn` | Rename symbol |
- | `<leader>f` | Format document |
- | `<leader>la` | Code action |
- | `<leader>ld` | Document diagnostics (list all diagnostics in buffer) |
- | `<leader>ln` | Next diagnostic |
- | `<leader>lp` | Previous diagnostic |
+| Key | Action |
+|---|---|
+| `gd` | Go to definition |
+| `gr` | Find references |
+| `K` | Hover documentation |
+| `<leader>rn` | Rename symbol |
+| `<leader>f` | Format document |
+| `<leader>la` | Code action |
+| `<leader>ld` | Document diagnostics (list all diagnostics in buffer) |
+| `<leader>ln` | Next diagnostic |
+| `<leader>lp` | Previous diagnostic |
 
 #### Plugins
 
@@ -184,29 +176,7 @@ curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
 
 ### tmux
 
-> **Prefix** is `Ctrl+B` (default). All bindings below require the prefix unless marked **[no prefix]**.
-
-#### Sessions, windows, panes
-
-| Key | Action |
-|---|---|
-| `Prefix + c` | New window |
-| `Prefix + ,` | Rename window |
-| `Prefix + 1`…`9` | Switch to window by number (1-indexed) |
-| `Prefix + n` / `p` | Next / previous window |
-| `Prefix + %` | Split pane vertically |
-| `Prefix + "` | Split pane horizontally |
-| `Prefix + x` | Close current pane |
-| `Prefix + z` | Toggle pane zoom (maximise) |
-| `Prefix + o` | Cycle focus through panes |
-| `Prefix + q` | Show pane numbers (press number to jump) |
-| `Prefix + {` / `}` | Swap pane left / right |
-
-#### Resize panes
-
-| Key | Action |
-|---|---|
-| `Prefix + ←/→/↑/↓` | Resize pane (hold to repeat) |
+> **Prefix** is `Ctrl+B` (default). Custom bindings only — all standard tmux defaults apply.
 
 #### Synchronise panes
 
@@ -216,30 +186,13 @@ curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
 
 > If the terminal freezes after `Ctrl+S`, press `Ctrl+Q` to unfreeze (bash XOFF/XON).
 
-#### Copy mode (vi keys)
+#### Copy mode — custom vi keys
 
 | Key | Action |
 |---|---|
-| `Prefix + [` | Enter copy mode |
-| `v` | Begin selection |
-| `y` | Yank (copy) selection and exit |
+| `v` | Begin selection (replaces default `Space`) |
+| `y` | Yank (copy) selection and exit (replaces default `Enter`) |
 | `Escape` | Cancel / exit copy mode |
-| `q` | Exit copy mode |
-| `h/j/k/l` | Move cursor |
-| `/` | Search forward |
-| `?` | Search backward |
-| `n` / `N` | Next / previous search match |
-
-#### Mouse
-
-Mouse support is enabled. Click to focus a pane, drag pane borders to resize, scroll to enter copy mode.
-
-#### Status bar
-
-The status bar is transparent (inherits Kitty's background) so it works in both light and dark themes. It shows:
-- **Left:** session name
-- **Right:** date and time (`YYYY-MM-DD HH:MM`)
-- Active window is bold and bracketed: `[1: bash]`
 
 ---
 
