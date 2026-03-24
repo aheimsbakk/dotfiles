@@ -52,13 +52,15 @@ Edit the `DOTFILES` array at the top of `update.sh`:
 
 ```bash
 DOTFILES=(
-    ".vimrc:.vimrc"
-    ".config/kitty/*:.config/kitty/*"
-    ".tmux.conf:.tmux.conf"        # ← add entries like this
+    "dots/vimrc:.vimrc"
+    "dots/config/kitty/*:.config/kitty/*"
+    "dots/tmux.conf:.tmux.conf"
+    # Add new entries here:
+    "dots/config/foo/bar.conf:.config/foo/bar.conf"
 )
 ```
 
-Format: `"REPO_PATH:TARGET_PATH"`. Glob `*` in the target is replaced with the matched filename.
+Format: `"REPO_PATH:TARGET_PATH"`. Glob `*` in the target expands to the matched filename.
 
 ### Adding a shell snippet
 
