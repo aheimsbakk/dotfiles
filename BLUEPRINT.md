@@ -92,6 +92,7 @@ Checks for `curl` and `python3`. On failure, detects the OS family and prints th
 | `MISSING` | Glob matched no files in the repository |
 | `CREATE` | New profile file created (was absent) |
 | `INJECT` | Snippet block appended to profile |
+| `RELOCATE` | Source path in an existing guard block updated to match the new repo location |
 | `PURGE` | Stale guard block would be removed (dry-run label) |
 | `PURGED` | Stale guard block removed from profile |
 | `DOWNLOAD` | Binary fetched from GitHub (dry-run label) |
@@ -126,6 +127,8 @@ source "/path/to/repo/snippets/powerline-go.bash"
 # <<< dotfiles:powerline-go.bash <<<
 ```
 The guard makes injection idempotent — re-running never duplicates the block. If the profile file does not exist it is created. To add support for a new shell, add an entry to the `SHELL_PROFILES` associative array (`declare -A`) in `update.sh`.
+
+When a guard block already exists but its `source` path no longer matches `$REPO_DIR` (e.g. the dotfiles repo was moved), `relocate_snippet` rewrites only the `source` line in-place and emits `RELOCATE`. This keeps injected profiles correct after the repo is relocated without a full purge-and-reinject cycle.
 
 Snippets are processed in **lexicographic filename order** — numeric prefixes (`00-`, `10-`, `90-`) define the injection order. If existing guard blocks in a profile are out of order, `reorder_snippets` purges and re-injects them in the correct order automatically.
 

@@ -419,9 +419,63 @@ purge_snippet() {
 	status "PURGED" "${profile}  (${name} block removed)"
 }
 
+# relocate_snippet SNIPPET_FILE PROFILE_FILE
+#   If the guard block for SNIPPET_FILE already exists in PROFILE_FILE but its
+#   source path no longer matches the current REPO_DIR (e.g. the repo was moved),
+#   rewrites only the source line in-place to use the correct path.
+#   Exit codes:
+#     0  — guard present and source path was already correct (no change needed)
+#     2  — guard present and source path was updated (or would be, in dry-run)
+#     1  — guard absent (caller should inject fresh)
+#   Respects DRY_RUN.
+relocate_snippet() {
+	local snippet="$1" # absolute path to snippet file in repo
+	local profile="$2" # absolute path to target profile file
+	local name
+	name="$(basename "$snippet")"
+	local guard="# >>> dotfiles:${name} >>>"
+
+	# Guard absent → caller must inject fresh
+	grep -qF "$guard" "$profile" 2>/dev/null || return 1
+
+	# Extract the source line currently present inside the guard block
+	local current_src
+	current_src="$(awk \
+		"/^# >>> dotfiles:${name} >>>/{found=1; next} found && /^source /{print; exit}" \
+		"$profile")"
+
+	local expected_src="source \"${snippet}\""
+
+	# Paths match — nothing to do
+	[[ "$current_src" == "$expected_src" ]] && return 0
+
+	# Path mismatch — rewrite the source line
+	if [[ "$DRY_RUN" == "1" ]]; then
+		status "RELOCATE" "${profile}  (${name}: path changed)"
+		return 2
+	fi
+
+	local escaped_old escaped_new
+	escaped_old="$(printf '%s' "$current_src" | sed 's|[&/\]|\\&|g')"
+	escaped_new="$(printf '%s' "$expected_src" | sed 's|[&/\]|\\&|g')"
+
+	local tmp
+	tmp="$(mktemp)"
+	# shellcheck disable=SC2064
+	trap "rm -f '${tmp}'" RETURN
+
+	sed "s|^${escaped_old}$|${escaped_new}|" "$profile" >"$tmp"
+	cat "$tmp" >"$profile"
+
+	status "RELOCATE" "${profile}  (${name}: source path updated)"
+	return 2
+}
+
 # inject_snippet SNIPPET_FILE PROFILE_FILE
 #   Appends a guarded source block to PROFILE_FILE if not already present.
 #   Guard tag is based on the snippet filename so it is unique and idempotent.
+#   If a guard block exists but its source path is stale (repo was moved), the
+#   path is updated in-place by relocate_snippet.
 #   Creates PROFILE_FILE if it does not exist.
 inject_snippet() {
 	local snippet="$1" # absolute path to snippet file in repo
@@ -453,9 +507,14 @@ inject_snippet() {
 		fi
 	fi
 
-	# Already injected → idempotent skip
+	# Guard present → check if source path is still valid; update if stale
 	if grep -qF "$guard" "$profile" 2>/dev/null; then
-		status "OK" "${profile}  (${name} already present)"
+		local rc=0
+		relocate_snippet "$snippet" "$profile" || rc=$?
+		# rc=0: path already correct; rc=2: path was updated — either way block exists
+		if [[ "$rc" -eq 0 ]]; then
+			status "OK" "${profile}  (${name} already present)"
+		fi
 		return
 	fi
 
