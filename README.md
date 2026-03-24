@@ -9,13 +9,14 @@ Personal configuration files for Vim, Kitty, and tmux — version-controlled and
 ## Quick start
 
 ```bash
-# Download and install dot-files, and powerline-go
+# Clone and install dotfiles, shell snippets, and powerline-go
 git clone git@github.com:aheimsbakk/dot-files.git ~/dotfiles
 cd ~/dotfiles
 ./update.sh
 
-# Prepare to install Vim plugins
-curl -fLo ~/.vim/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+# Bootstrap vim-plug (run once)
+curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
+  https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
 ```
 
 This will:
@@ -23,7 +24,7 @@ This will:
 2. Inject shell snippets into `~/.bashrc` / `~/.zshrc`
 3. Download `powerline-go v1.26` into `~/.local/bin/`
 
-After the first run, bootstrap Vim plugins:
+Then open Vim and install plugins:
 
 ```vim
 :PlugInstall
@@ -164,13 +165,6 @@ source "/path/to/repo/snippets/my-snippet.bash"
 #### Plugins
 
 Install: `:PlugInstall` — Update: `:PlugUpdate` — Clean: `:PlugClean`
-
-vim-plug bootstrap (run once):
-
-```bash
-curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
-  https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-```
 
 ---
 
