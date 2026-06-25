@@ -4,6 +4,6 @@
 #
 
 if which podman > /dev/null; then
-    alias oc='podman run -e OPENCODE_CONFIG=/home/opencode/opencode.json --hostname vibe --name opencode --rm --userns=keep-id -ti -v opencode:/home/opencode:Z -v "$PWD":/work:Z -v "$HOME"/.gitconfig:/home/opencode/.gitconfig:Z opencode:latest'
-    alias ocw='podman run -e OPENCODE_CONFIG=/home/opencode/opencode.json --hostname vibe --name opencode --rm --userns=keep-id -ti -p 4096:4096 -v opencode:/home/opencode:Z -v "$PWD":/work:Z -v "$HOME"/.gitconfig:/home/opencode/.gitconfig:Z opencode:latest opencode web --hostname 0.0.0.0'
+    alias oc='podman run -e OPENCODE_ENABLE_EXA=1 -e OPENCODE_CONFIG=/home/opencode/opencode.json --hostname vibe --name opencode --rm --userns=keep-id -ti -v opencode:/home/opencode:Z -v "$PWD":/work:Z -v "$HOME"/.gitconfig:/home/opencode/.gitconfig:Z opencode:latest'
+    alias ocw='podman run -e OPENCODE_ENABLE_EXA=1 -e OPENCODE_CONFIG=/home/opencode/opencode.json --hostname vibe --name opencode --rm --userns=keep-id -ti -p 4096:4096 -v opencode:/home/opencode:Z -v "$PWD":/work:Z -v "$HOME"/.gitconfig:/home/opencode/.gitconfig:Z opencode:latest opencode web --hostname 0.0.0.0'
 fi
