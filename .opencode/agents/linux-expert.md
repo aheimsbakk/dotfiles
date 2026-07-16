@@ -9,6 +9,7 @@ tools:
   read: false
   glob: false
   grep: false
+  task: false
   question: false
   external_directory: false
 ---
