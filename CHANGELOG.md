@@ -10,6 +10,20 @@ All notable changes to this project are documented in this file. Bump rules:
 
 ---
 
+## [0.4.2] - 2026-08-27
+
+- **why:** Regenerate the architectural and mapping docs to match the working tree, and start versioning the docs directory
+- **model:** deepseek/deepseek-v4-flash-latest
+- **tags:** docs, sync, codebase
+
+### Changed
+
+- Regenerated `BLUEPRINT.md` from the authoritative repository content; added the agent-setup and docs goals and covered `scripts/verify_codebase_sync.sh`
+- Regenerated `CODEBASE.md`, adding `.opencode/`, `scripts/`, `CHANGELOG.md`, and `docs/memory/` paths and correcting the version to `0.4.2`
+- Tracked `docs/` in git (removed it from `.gitignore`)
+
+---
+
 ## [0.4.1] - 2026-08-27
 
 - **why:** Simplify opencode configuration by removing subagent agents, switch terminal theme, and disable autoupdate
