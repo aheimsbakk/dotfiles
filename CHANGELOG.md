@@ -10,6 +10,28 @@ All notable changes to this project are documented in this file. Bump rules:
 
 ---
 
+## [0.4.1] - 2026-08-27
+
+- **why:** Simplify opencode configuration by removing subagent agents, switch terminal theme, and disable autoupdate
+- **tags:** config, cleanup, theme
+
+### Removed
+
+- `.opencode/agents/architect.md` — system architect subagent
+- `.opencode/agents/builder.md` — builder subagent
+- `.opencode/agents/brainstorm.md` — brainstorm subagent
+- `.opencode/agents/pm.md` — project manager subagent
+- `.opencode/agents/qa.md` — qa subagent
+
+### Changed
+
+- Added rule 27 (Intent-Based Commenting) to `.opencode/RULES.md`
+- Switched Kitty from Gnome Light to Ayu theme (`dots/config/kitty/`)
+- Updated `update.sh` repo reference from `agentic-template` to `agentic-opencode`
+- Disabled `autoupdate` in `opencode.json`; commented out MCP config
+
+---
+
 ## [0.4.0] - 2026-07-16
 
 ### Added
